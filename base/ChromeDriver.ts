@@ -45,10 +45,11 @@ export default class ChromeDriver {
     // Define the chrome builder options
     const { isHeadless, downloadDir, userdataDir, userProfile, width, height } =
       options;
+
     const chromeOptions = new ChromeOptions()
-      .setUserPreferences({ "download.default_directory": downloadDir })
       .addArguments(`user-data-dir=${userdataDir}`)
       .addArguments(`profile-directory=${userProfile}`)
+      .setUserPreferences({ "download.default_directory": downloadDir })
       .addArguments(`window-size=${width},${height}`)
       .excludeSwitches("enable-logging");
 
@@ -84,14 +85,5 @@ export default class ChromeDriver {
 
     // return the instance
     return await thenableDriver;
-  };
-
-  /**
-   * Method for quitting and closing the current webdriver
-   */
-  public static readonly quitAfter = (ms: number, driver: WebDriver) => {
-    setTimeout(async () => {
-      await driver.quit();
-    }, ms);
   };
 }
