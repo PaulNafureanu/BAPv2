@@ -1,6 +1,8 @@
 import { By, Locator, WebDriver, until } from "selenium-webdriver";
 import Element, { WebLocator } from "../base/Element";
 import ChromeDriver from "./../base/ChromeDriver";
+import untilImageSize from "../lib/conditions/untilImageSize";
+import Backup from "../base/Backup";
 
 export default class DeepAI {
   private static url = "https://deepai.org/machine-learning-model/text2img";
@@ -31,6 +33,26 @@ export default class DeepAI {
     XPath: '//*[@id="download-model-image"]',
   };
 
+  static checkLogin = async (chrome: WebDriver) => {
+    let isLogin: boolean;
+    const menuLoc = By.id("dropMenuButton");
+    const menuBtn = await DeepAI.getElement(chrome, menuLoc, "Menu Btn");
+    await menuBtn.click();
+    const profileLoc = By.id("navProfileButton");
+    try {
+      const profileBtn = await DeepAI.getElement(
+        chrome,
+        profileLoc,
+        "Profile Btn"
+      );
+      isLogin = !!profileBtn;
+    } catch (error) {
+      isLogin = false;
+    }
+    await menuBtn.click();
+    return isLogin;
+  };
+
   static getElement = async (
     chrome: WebDriver,
     locator: Locator,
@@ -56,13 +78,25 @@ export default class DeepAI {
 
     // Start chrome
     const chrome = await ChromeDriver.construct();
-
     await chrome.get(DeepAI.url);
-    // await chrome.sleep(600 * 1000); //10min
 
     // End boot time and start process time
     console.timeEnd("boot");
     console.time("process");
+
+    // Check login
+    const isLogin = await DeepAI.checkLogin(chrome);
+    console.log("IsLogIn: ", isLogin);
+
+    // TODO: need work
+    if (!isLogin) {
+      await chrome.quit();
+      await Backup.userdataProfile(ChromeDriver.DefaultOptions.userdataDir);
+      console.log("Done");
+      return;
+    }
+
+    await chrome.sleep(600 * 1000); //10min
 
     // Send keys to textarea
     const txtLoc = By.css("textarea.model-input-text-input");
@@ -81,13 +115,13 @@ export default class DeepAI {
     const enhanceBtn = await DeepAI.getElement(chrome, enhLoc, "Enhance Btn");
     await enhanceBtn.click();
 
-    // Wait for getting the enhance image
+    // Wait for getting the enhanced image
     const imgLoc = By.xpath('//*[@id="place_holder_picture_model"]/img');
-    await chrome.wait(async () => {
-      const img = await chrome.wait(until.elementLocated(imgLoc));
-      const imgWidth = await img.getAttribute("naturalWidth");
-      return Number(imgWidth) > 1024;
-    }, 10000);
+    const img = await DeepAI.getElement(chrome, imgLoc, "Image");
+    await chrome.wait(
+      untilImageSize(img, (width) => (width || 0) > 1024),
+      15000
+    );
     console.timeLog("process", "Image - enhanced located");
 
     // Click to download it
@@ -97,10 +131,10 @@ export default class DeepAI {
       downLoc,
       "Download Btn"
     );
-    await downloadBtn.click();
+    // await downloadBtn.click();
 
     // Wait to finish downloading the image
-    await chrome.sleep(30 * 1000); //1 min
+    await chrome.sleep(15 * 1000); //1 min
 
     // Close chrome and end process after downloading
     await chrome.quit();
