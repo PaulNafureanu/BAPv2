@@ -1,3 +1,4 @@
+import "dotenv/config";
 import DeepAI from "./web/DeepAI";
 
 (async () => {

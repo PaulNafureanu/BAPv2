@@ -2,10 +2,12 @@ import { By, Locator, WebDriver, until } from "selenium-webdriver";
 import Element, { WebLocator } from "../base/Element";
 import ChromeDriver from "./../base/ChromeDriver";
 import untilImageSize from "../lib/conditions/untilImageSize";
-import Backup from "../base/Backup";
 
 export default class DeepAI {
   private static url = "https://deepai.org/machine-learning-model/text2img";
+  private static email = process.env.DEEPAI_EMAIL || "";
+  private static password = process.env.DEEPAI_PASSWORD || "";
+
   private static promptLocator: WebLocator = {
     CSSLocator: "textarea.model-input-text-input",
     CSSLocator2: ".model-input-col .model-input-text-input",
@@ -34,23 +36,38 @@ export default class DeepAI {
   };
 
   static checkLogin = async (chrome: WebDriver) => {
-    let isLogin: boolean;
-    const menuLoc = By.id("dropMenuButton");
-    const menuBtn = await DeepAI.getElement(chrome, menuLoc, "Menu Btn");
-    await menuBtn.click();
-    const profileLoc = By.id("navProfileButton");
     try {
-      const profileBtn = await DeepAI.getElement(
-        chrome,
-        profileLoc,
-        "Profile Btn"
-      );
-      isLogin = !!profileBtn;
+      const loginLoc = By.id("headerLoginButton");
+      await chrome.sleep(1000);
+      await DeepAI.getElement(chrome, loginLoc, "Login Btn", 5000);
+      return false;
     } catch (error) {
-      isLogin = false;
+      return true;
     }
-    await menuBtn.click();
-    return isLogin;
+  };
+
+  static login = async (chrome: WebDriver) => {
+    const loginLoc = By.id("headerLoginButton");
+    const loginBtn = await DeepAI.getElement(chrome, loginLoc, "Login Btn");
+    await loginBtn.click();
+    const emailLoc = By.id("switch-to-email");
+    const emailBtn = await DeepAI.getElement(chrome, emailLoc, "Email Btn");
+    await emailBtn.click();
+    const userLoc = By.id("user-email");
+    const userInput = await DeepAI.getElement(chrome, userLoc, "User Input");
+    await userInput.clear();
+    await userInput.sendKeys(DeepAI.email);
+    const passLoc = By.id("user-password");
+    const passInput = await DeepAI.getElement(
+      chrome,
+      passLoc,
+      "Password Input"
+    );
+    await passInput.clear();
+    await passInput.sendKeys(DeepAI.password);
+    const logLoc = By.id("login-via-email-id");
+    const logBtn = await DeepAI.getElement(chrome, logLoc, "Log Btn");
+    await logBtn.click();
   };
 
   static getElement = async (
@@ -89,12 +106,8 @@ export default class DeepAI {
     console.log("IsLogIn: ", isLogin);
 
     // TODO: need work
-    if (!isLogin) {
-      await chrome.quit();
-      await Backup.userdataProfile(ChromeDriver.DefaultOptions.userdataDir);
-      console.log("Done");
-      return;
-    }
+    if (!isLogin) await DeepAI.login(chrome);
+    console.log("Done");
 
     await chrome.sleep(600 * 1000); //10min
 
