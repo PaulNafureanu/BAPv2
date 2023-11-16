@@ -2,5 +2,5 @@ import "dotenv/config";
 import DeepAI from "./web/DeepAI";
 
 (async () => {
-  await DeepAI.txt2Img("");
+  await DeepAI.txt2Img("Some beautiful flowers.");
 })();

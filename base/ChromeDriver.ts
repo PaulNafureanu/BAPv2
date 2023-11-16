@@ -1,5 +1,5 @@
 import path from "node:path";
-import { Builder, ThenableWebDriver, WebDriver } from "selenium-webdriver";
+import { Builder, ThenableWebDriver } from "selenium-webdriver";
 import { Options as ChromeOptions } from "selenium-webdriver/chrome";
 
 /**
@@ -68,10 +68,26 @@ export default class ChromeDriver {
    * @return Returns a chrome web driver instance.
    */
   static readonly construct = async (
-    options: ChromeDriverOptions = ChromeDriver.DefaultOptions
+    options: Partial<ChromeDriverOptions> = ChromeDriver.DefaultOptions
   ) => {
+    // Set the default options
+    const d = ChromeDriver.DefaultOptions;
+    const completedOptions: ChromeDriverOptions = {
+      isHeadless: options.isHeadless || d.isHeadless,
+      userProfile: options.userProfile || d.userProfile,
+      userdataDir: options.userdataDir || d.userdataDir,
+      uploadDir: options.uploadDir || d.uploadDir,
+      downloadDir: options.downloadDir || d.downloadDir,
+      screenshotDir: options.screenshotDir || d.screenshotDir,
+      sourceDir: options.sourceDir || d.sourceDir,
+      width: options.width || d.width,
+      height: options.height || d.height,
+      resize: options.resize || d.resize,
+      implicitWait: options.implicitWait || d.implicitWait,
+    };
+
     // Construct a new thenable chrome driver instance
-    const { thenableDriver } = new ChromeDriver(options);
+    const { thenableDriver } = new ChromeDriver(completedOptions);
 
     // Set the implicit wait of the driver
     await thenableDriver

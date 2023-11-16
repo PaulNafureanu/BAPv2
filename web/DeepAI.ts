@@ -1,73 +1,36 @@
-import { By, Locator, WebDriver, until } from "selenium-webdriver";
-import Element, { WebLocator } from "../base/Element";
+import { By, Locator, WebDriver, WebElement, until } from "selenium-webdriver";
 import ChromeDriver from "./../base/ChromeDriver";
 import untilImageSize from "../lib/conditions/untilImageSize";
+import Element, { ElementOptions, WebLocator } from "../base/Element";
+import deepAiLoc from "../locators/deepAiLoc";
 
 export default class DeepAI {
   private static url = "https://deepai.org/machine-learning-model/text2img";
   private static email = process.env.DEEPAI_EMAIL || "";
   private static password = process.env.DEEPAI_PASSWORD || "";
-
-  private static promptLocator: WebLocator = {
-    CSSLocator: "textarea.model-input-text-input",
-    CSSLocator2: ".model-input-col .model-input-text-input",
-    XPath: "/html/body/main/div[2]/div/div/div[1]/span/textarea",
+  private static options = {
+    maxRetries: 0,
+    timeout: 15 * 1000,
   };
 
-  private static generateLocator: WebLocator = {
-    IDLocator: "modelSubmitButton",
-    CSSLocator: ".edit-buttons-container #modelSubmitButton",
-    CSSLocator2: ".edit-buttons-container button:last-of-type",
-    XPath: '//*[@id="modelSubmitButton"]',
-  };
-
-  private static enhanceLocator: WebLocator = {
-    IDLocator: "enhance-model-image",
-    CSSLocator: ".edit-buttons-container #enhance-model-image",
-    CSSLocator2: ".edit-buttons-container:last-of-type button:last-of-type",
-    XPath: '//*[@id="enhance-model-image"]',
-  };
-
-  private static downloadLocator: WebLocator = {
-    IDLocator: "download-model-image",
-    CSSLocator: ".edit-buttons-container #download-model-image",
-    CSSLocator2: ".edit-buttons-container:last-of-type button",
-    XPath: '//*[@id="download-model-image"]',
-  };
-
-  static checkLogin = async (chrome: WebDriver) => {
-    try {
-      const loginLoc = By.id("headerLoginButton");
-      await chrome.sleep(1000);
-      await DeepAI.getElement(chrome, loginLoc, "Login Btn", 5000);
-      return false;
-    } catch (error) {
-      return true;
-    }
+  static isLogIn = async (chrome: WebDriver) => {
+    const { loginLoc } = deepAiLoc;
+    const options = DeepAI.options;
+    options.timeout = 5 * 1000;
+    return !(await Element.construct(chrome, loginLoc, options));
   };
 
   static login = async (chrome: WebDriver) => {
-    const loginLoc = By.id("headerLoginButton");
-    const loginBtn = await DeepAI.getElement(chrome, loginLoc, "Login Btn");
-    await loginBtn.click();
-    const emailLoc = By.id("switch-to-email");
-    const emailBtn = await DeepAI.getElement(chrome, emailLoc, "Email Btn");
-    await emailBtn.click();
-    const userLoc = By.id("user-email");
-    const userInput = await DeepAI.getElement(chrome, userLoc, "User Input");
-    await userInput.clear();
-    await userInput.sendKeys(DeepAI.email);
-    const passLoc = By.id("user-password");
-    const passInput = await DeepAI.getElement(
-      chrome,
-      passLoc,
-      "Password Input"
-    );
-    await passInput.clear();
-    await passInput.sendKeys(DeepAI.password);
-    const logLoc = By.id("login-via-email-id");
-    const logBtn = await DeepAI.getElement(chrome, logLoc, "Log Btn");
-    await logBtn.click();
+    const { loginLoc, switch2EmailLoc, userLoc, passLoc, authLoc } = deepAiLoc;
+    (await Element.construct(chrome, loginLoc, DeepAI.options)).click();
+    (await Element.construct(chrome, switch2EmailLoc, DeepAI.options)).click();
+    const userField = await Element.construct(chrome, userLoc, DeepAI.options);
+    await userField.clear();
+    await userField.sendKeys(DeepAI.email);
+    const passField = await Element.construct(chrome, passLoc, DeepAI.options);
+    await passField.clear();
+    await passField.sendKeys(DeepAI.password);
+    (await Element.construct(chrome, authLoc, DeepAI.options)).click();
   };
 
   static getElement = async (
@@ -102,21 +65,32 @@ export default class DeepAI {
     console.time("process");
 
     // Check login
-    const isLogin = await DeepAI.checkLogin(chrome);
+    const isLogin = await DeepAI.isLogIn(chrome);
     console.log("IsLogIn: ", isLogin);
 
     // TODO: need work
     if (!isLogin) await DeepAI.login(chrome);
     console.log("Done");
 
-    await chrome.sleep(600 * 1000); //10min
-
     // Send keys to textarea
     const txtLoc = By.css("textarea.model-input-text-input");
-    const textarea = await DeepAI.getElement(chrome, txtLoc, "Textarea");
+    let textarea: WebElement;
+    try {
+      textarea = await DeepAI.getElement(
+        chrome,
+        By.css("txt.model-in.s"),
+        "Textarea"
+      );
+    } catch (error) {
+      console.log("Error: ", error);
+    }
+    textarea = await DeepAI.getElement(chrome, txtLoc, "Textarea");
+
     await textarea.clear();
-    await textarea.sendKeys("Some beautiful flowers.");
+    await textarea.sendKeys(prompt);
     console.log("process", "Textarea - clear and sent keys.");
+
+    await chrome.sleep(300 * 1000);
 
     //Click generate
     const genLoc = By.id("modelSubmitButton");
