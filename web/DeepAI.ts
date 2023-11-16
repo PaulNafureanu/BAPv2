@@ -1,8 +1,13 @@
-import { By, Locator, WebDriver, WebElement, until } from "selenium-webdriver";
-import ChromeDriver from "./../base/ChromeDriver";
-import untilImageSize from "../lib/conditions/untilImageSize";
+import { WebElement } from "selenium-webdriver";
 import Element, { ElementOptions, WebLocator } from "../base/Element";
+import untilImageSize from "../lib/conditions/untilImageSize";
 import deepAiLoc from "../locators/deepAiLoc";
+import ChromeDriver from "./../base/ChromeDriver";
+
+type getElementFn = (
+  webLocator: WebLocator,
+  options?: { throwError?: true } & Partial<ElementOptions>
+) => Promise<WebElement>;
 
 export default class DeepAI {
   private static url = "https://deepai.org/machine-learning-model/text2img";
@@ -13,118 +18,50 @@ export default class DeepAI {
     timeout: 15 * 1000,
   };
 
-  static isLogIn = async (chrome: WebDriver) => {
-    const { loginLoc } = deepAiLoc;
+  static isLogIn = async (getElement: getElementFn) => {
+    const { login } = deepAiLoc;
     const options = DeepAI.options;
     options.timeout = 5 * 1000;
-    return !(await Element.construct(chrome, loginLoc, options));
+    return !(await getElement(login, options));
   };
 
-  static login = async (chrome: WebDriver) => {
-    const { loginLoc, switch2EmailLoc, userLoc, passLoc, authLoc } = deepAiLoc;
-    (await Element.construct(chrome, loginLoc, DeepAI.options)).click();
-    (await Element.construct(chrome, switch2EmailLoc, DeepAI.options)).click();
-    const userField = await Element.construct(chrome, userLoc, DeepAI.options);
+  static login = async (getElement: getElementFn) => {
+    const { login, switch2Email, username, password, auth } = deepAiLoc;
+    (await getElement(login)).click();
+    (await getElement(switch2Email)).click();
+    const userField = await getElement(username);
     await userField.clear();
     await userField.sendKeys(DeepAI.email);
-    const passField = await Element.construct(chrome, passLoc, DeepAI.options);
+    const passField = await getElement(password);
     await passField.clear();
     await passField.sendKeys(DeepAI.password);
-    (await Element.construct(chrome, authLoc, DeepAI.options)).click();
-  };
-
-  static getElement = async (
-    chrome: WebDriver,
-    locator: Locator,
-    label: string,
-    timeout: number = 15000
-  ) => {
-    const element = await chrome.wait(until.elementLocated(locator), timeout);
-    console.timeLog("process", `${label} - located.`);
-    await chrome.wait(until.elementIsVisible(element), timeout);
-    console.timeLog("process", `${label} - visible.`);
-    await chrome.wait(until.elementIsEnabled(element), timeout);
-    console.timeLog("process", `${label} - enabled.`);
-    await chrome.executeScript(
-      "arguments[0].scrollIntoView({behavior:'instant', block: 'center', inline: 'nearest'})",
-      element
-    );
-    return element;
+    (await getElement(auth)).click();
   };
 
   static txt2Img = async (prompt: string) => {
-    // Start boot time
-    console.time("boot");
-
-    // Start chrome
     const chrome = await ChromeDriver.construct();
     await chrome.get(DeepAI.url);
 
-    // End boot time and start process time
-    console.timeEnd("boot");
-    console.time("process");
+    const getElement: getElementFn = async (
+      webLocator: WebLocator,
+      options = DeepAI.options
+    ) => await Element.construct(chrome, webLocator, options);
 
-    // Check login
-    const isLogin = await DeepAI.isLogIn(chrome);
-    console.log("IsLogIn: ", isLogin);
-
-    // TODO: need work
-    if (!isLogin) await DeepAI.login(chrome);
-    console.log("Done");
-
-    // Send keys to textarea
-    const txtLoc = By.css("textarea.model-input-text-input");
-    let textarea: WebElement;
-    try {
-      textarea = await DeepAI.getElement(
-        chrome,
-        By.css("txt.model-in.s"),
-        "Textarea"
-      );
-    } catch (error) {
-      console.log("Error: ", error);
-    }
-    textarea = await DeepAI.getElement(chrome, txtLoc, "Textarea");
-
+    const isLogin = await DeepAI.isLogIn(getElement);
+    if (!isLogin) await DeepAI.login(getElement);
+    const { text, generate, enhance, image, download } = deepAiLoc;
+    const textarea = await getElement(text);
     await textarea.clear();
     await textarea.sendKeys(prompt);
-    console.log("process", "Textarea - clear and sent keys.");
-
-    await chrome.sleep(300 * 1000);
-
-    //Click generate
-    const genLoc = By.id("modelSubmitButton");
-    const generateBtn = await DeepAI.getElement(chrome, genLoc, "Generate Btn");
-    await generateBtn.click();
-
-    // Click enhance
-    const enhLoc = By.id("enhance-model-image");
-    const enhanceBtn = await DeepAI.getElement(chrome, enhLoc, "Enhance Btn");
-    await enhanceBtn.click();
-
-    // Wait for getting the enhanced image
-    const imgLoc = By.xpath('//*[@id="place_holder_picture_model"]/img');
-    const img = await DeepAI.getElement(chrome, imgLoc, "Image");
+    (await getElement(generate)).click();
+    (await getElement(enhance)).click();
+    const img = await getElement(image);
     await chrome.wait(
       untilImageSize(img, (width) => (width || 0) > 1024),
       15000
     );
-    console.timeLog("process", "Image - enhanced located");
-
-    // Click to download it
-    const downLoc = By.id("download-model-image");
-    const downloadBtn = await DeepAI.getElement(
-      chrome,
-      downLoc,
-      "Download Btn"
-    );
-    // await downloadBtn.click();
-
-    // Wait to finish downloading the image
-    await chrome.sleep(15 * 1000); //1 min
-
-    // Close chrome and end process after downloading
+    (await getElement(download)).click();
+    await chrome.sleep(30 * 1000);
     await chrome.quit();
-    console.timeEnd("process");
   };
 }

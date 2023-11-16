@@ -28,28 +28,51 @@ const downloadLocator: WebLocator = {
 };
 
 const deepAiLoc = {
-  loginLoc: {
+  login: {
     IDLocator: "headerLoginButton",
     CSSLocator: "",
     XPath: "",
   },
-  switch2EmailLoc: {
+  switch2Email: {
     IDLocator: "switch-to-email",
     CSSLocator: "",
     XPath: "",
   },
-  userLoc: {
+  username: {
     IDLocator: "user-email",
     CSSLocator: "",
     XPath: "",
   },
-  passLoc: {
+  password: {
     IDLocator: "user-password",
     CSSLocator: "",
     XPath: "",
   },
-  authLoc: {
+  auth: {
     IDLocator: "login-via-email-id",
+    CSSLocator: "",
+    XPath: "",
+  },
+  text: {
+    CSSLocator: "textarea.model-input-text-input",
+    XPath: "",
+  },
+  generate: {
+    IDLocator: "modelSubmitButton",
+    CSSLocator: "",
+    XPath: "",
+  },
+  enhance: {
+    IDLocator: "enhance-model-image",
+    CSSLocator: "",
+    XPath: "",
+  },
+  image: {
+    CSSLocator: "",
+    XPath: '//*[@id="place_holder_picture_model"]/img',
+  },
+  download: {
+    IDLocator: "download-model-image",
     CSSLocator: "",
     XPath: "",
   },
