@@ -71,6 +71,11 @@ const deepAiLoc = {
     CSSLocator: "",
     XPath: '//*[@id="place_holder_picture_model"]/img',
   },
+  subscription: {
+    IDLocator: "subscription-modal",
+    CSSLocator: "",
+    XPath: "",
+  },
   download: {
     IDLocator: "download-model-image",
     CSSLocator: "",
